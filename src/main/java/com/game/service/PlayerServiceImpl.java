@@ -40,15 +40,20 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Player read(Long id) {
-        return playerRepository.getOne(id);
+        if (playerRepository.existsById(id))
+            return playerRepository.getOne(id);
+
+        return null;
     }
 
     @Override
-    public void update(Player player, Long id) {
+    public Player update(Player player, Long id) {
         if (playerRepository.existsById(id)) {
             player.setId(id);
             playerRepository.save(player);
         }
+
+        return null;
     }
 
     @Override
@@ -59,6 +64,19 @@ public class PlayerServiceImpl implements PlayerService {
             return player;
         }
         return null;
+    }
+
+    @Override
+    public Long checkId(String id) {
+        if (id == null || id.isEmpty() || id.equalsIgnoreCase("0"))
+            return -1L;
+        try {
+            Long id1 = Long.parseLong(id);
+            return id1;
+        } catch (NumberFormatException e) {
+        }
+
+        return -1L;
     }
 
     @Override
