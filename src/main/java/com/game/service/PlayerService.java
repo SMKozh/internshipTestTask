@@ -20,9 +20,11 @@ public interface PlayerService {
 
     Player read(Long id);
 
-    void update(Player player, Long id);
+    Player update(Player player, Long id);
 
     Player delete(Long id);
+
+    Long checkId(String id);
 
     Specification<Player> filterByName(String name);
 
