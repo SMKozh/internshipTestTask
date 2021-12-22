@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -25,6 +26,35 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Player create(Player player) {
+        if (player.getName() == null ||
+                player.getTitle() == null ||
+                player.getRace() == null ||
+                player.getProfession() == null ||
+                player.getBirthday() == null ||
+                player.getExperience() == null)
+            return null;
+
+        if (player.getName().length() > 12)
+            return null;
+        if(player.getName().isEmpty())
+            return null;
+        if (player.getTitle().length() > 30)
+            return null;
+        if (player.getExperience() < 0 || player.getExperience() > 10_000_000)
+            return null;
+        if (player.getBirthday().getTime() < 0)
+            return null;
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(player.getBirthday());
+        if (calendar.get(Calendar.YEAR) < 2000 || calendar.get(Calendar.YEAR) > 3000)
+            return null;
+
+        Integer level = calculateLevel(player.getExperience());
+        player.setLevel(level);
+
+        Integer expUntilNextLevel = calculateUntilNextLevel(level, player.getExperience());
+        player.setUntilNextLevel(expUntilNextLevel);
+
         return playerRepository.saveAndFlush(player);
     }
 
@@ -77,6 +107,18 @@ public class PlayerServiceImpl implements PlayerService {
         }
 
         return -1L;
+    }
+
+    private Integer calculateLevel(Integer exp) {
+        Integer level = (int) ((Math.sqrt(2500 + 200 * exp) - 50) / 100);
+
+        return level;
+    }
+
+    private Integer calculateUntilNextLevel(Integer level, Integer exp) {
+        Integer necessaryExp = 50 * (level + 1) * (level + 2) - exp;
+
+        return necessaryExp;
     }
 
     @Override
