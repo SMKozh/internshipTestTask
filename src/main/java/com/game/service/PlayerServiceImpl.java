@@ -34,20 +34,12 @@ public class PlayerServiceImpl implements PlayerService {
                 player.getExperience() == null)
             return null;
 
-        if (player.getName().length() > 12)
+        int code = checkPlayerParameters(player);
+        if (code == -1)
             return null;
-        if(player.getName().isEmpty())
-            return null;
-        if (player.getTitle().length() > 30)
-            return null;
-        if (player.getExperience() < 0 || player.getExperience() > 10_000_000)
-            return null;
-        if (player.getBirthday().getTime() < 0)
-            return null;
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(player.getBirthday());
-        if (calendar.get(Calendar.YEAR) < 2000 || calendar.get(Calendar.YEAR) > 3000)
-            return null;
+
+        if (player.getBanned() == null)
+            player.setBanned(false);
 
         Integer level = calculateLevel(player.getExperience());
         player.setLevel(level);
@@ -71,25 +63,59 @@ public class PlayerServiceImpl implements PlayerService {
     @Override
     public Player read(Long id) {
         if (playerRepository.existsById(id))
-            return playerRepository.getOne(id);
+            return playerRepository.findById(id).get();
 
         return null;
     }
 
     @Override
     public Player update(Player player, Long id) {
-        if (playerRepository.existsById(id)) {
-            player.setId(id);
-            playerRepository.save(player);
+        if (!playerRepository.existsById(id)) {
+            return null;
         }
 
-        return null;
+        int code = checkPlayerParameters(player);
+        if (code == -1) {
+            return null;
+        }
+
+        Player playerToBeUpdated = playerRepository.findById(id).get();
+
+        if (player.getName() != null)
+            playerToBeUpdated.setName(player.getName());
+
+        if (player.getTitle() != null)
+            playerToBeUpdated.setTitle(player.getTitle());
+
+        if (player.getRace() != null)
+            playerToBeUpdated.setRace(player.getRace());
+
+        if (player.getProfession() != null)
+            playerToBeUpdated.setProfession(player.getProfession());
+
+        if (player.getBirthday() != null)
+            playerToBeUpdated.setBirthday(player.getBirthday());
+
+        if (player.getBanned() != null)
+            playerToBeUpdated.setBanned(player.getBanned());
+
+        if (player.getExperience() != null) {
+            playerToBeUpdated.setExperience(player.getExperience());
+
+            Integer level = calculateLevel(player.getExperience());
+            playerToBeUpdated.setLevel(level);
+
+            Integer expUntilNextLevel = calculateUntilNextLevel(level, player.getExperience());
+            playerToBeUpdated.setUntilNextLevel(expUntilNextLevel);
+        }
+
+        return playerRepository.save(playerToBeUpdated);
     }
 
     @Override
     public Player delete(Long id) {
         if (playerRepository.existsById(id)) {
-            Player player = playerRepository.getOne(id);
+            Player player = playerRepository.findById(id).get();
             playerRepository.deleteById(id);
             return player;
         }
@@ -107,6 +133,25 @@ public class PlayerServiceImpl implements PlayerService {
         }
 
         return -1L;
+    }
+
+    private int checkPlayerParameters(Player player) {
+        if (player.getName() != null && (player.getName().length() > 12) || (player.getName().isEmpty()))
+            return -1;
+        if (player.getTitle() != null && (player.getTitle().length() > 30))
+            return -1;
+        if (player.getExperience() != null && (player.getExperience() < 0 || player.getExperience() > 10_000_000))
+            return -1;
+        if (player.getBirthday() != null && player.getBirthday().getTime() < 0)
+            return -1;
+        if (player.getBirthday() != null) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(player.getBirthday());
+            if (calendar.get(Calendar.YEAR) < 2000 || calendar.get(Calendar.YEAR) > 3000)
+                return -1;
+        }
+
+        return 0;
     }
 
     private Integer calculateLevel(Integer exp) {

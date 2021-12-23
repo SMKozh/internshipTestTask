@@ -98,7 +98,7 @@ public class PlayerController {
                 .and(playerService.filterByLevel(minLevel, maxLevel))).size();
     }
 
-    @GetMapping("players/{id}")
+    @GetMapping("/players/{id}")
     public ResponseEntity<Player> read(@PathVariable(value = "id") String idString) {
         Long id = playerService.checkId(idString);
 
@@ -120,8 +120,8 @@ public class PlayerController {
                 : new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
 
-    @PutMapping("players/{id}")
-    public ResponseEntity<Player> update(@RequestBody Player player, @PathVariable(value = "id") String idString) {
+    @PostMapping("/players/{id}")
+    public ResponseEntity<Player> update(@PathVariable(value = "id") String idString, @RequestBody Player player) {
         Long id = playerService.checkId(idString);
 
         if (id == -1L)
@@ -133,7 +133,7 @@ public class PlayerController {
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @DeleteMapping("players/{id}")
+    @DeleteMapping("/players/{id}")
     public ResponseEntity<?> delete(@PathVariable(value = "id") String idString) {
         Long id = playerService.checkId(idString);
 
