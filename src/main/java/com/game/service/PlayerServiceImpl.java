@@ -1,5 +1,7 @@
 package com.game.service;
 
+import com.game.BadRequestException;
+import com.game.PlayerNotFoundException;
 import com.game.entity.Player;
 import com.game.entity.Profession;
 import com.game.entity.Race;
@@ -32,11 +34,9 @@ public class PlayerServiceImpl implements PlayerService {
                 player.getProfession() == null ||
                 player.getBirthday() == null ||
                 player.getExperience() == null)
-            return null;
+            throw new BadRequestException();
 
-        int code = checkPlayerParameters(player);
-        if (code == -1)
-            return null;
+        checkPlayerParameters(player);
 
         if (player.getBanned() == null)
             player.setBanned(false);
@@ -62,22 +62,18 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Player read(Long id) {
-        if (playerRepository.existsById(id))
-            return playerRepository.findById(id).get();
+        if (!playerRepository.existsById(id))
+            throw new PlayerNotFoundException();
 
-        return null;
+        return playerRepository.findById(id).get();
     }
 
     @Override
     public Player update(Player player, Long id) {
-        if (!playerRepository.existsById(id)) {
-            return null;
-        }
+        if (!playerRepository.existsById(id))
+            throw new PlayerNotFoundException();
 
-        int code = checkPlayerParameters(player);
-        if (code == -1) {
-            return null;
-        }
+        checkPlayerParameters(player);
 
         Player playerToBeUpdated = playerRepository.findById(id).get();
 
@@ -113,45 +109,45 @@ public class PlayerServiceImpl implements PlayerService {
     }
 
     @Override
-    public Player delete(Long id) {
-        if (playerRepository.existsById(id)) {
-            Player player = playerRepository.findById(id).get();
-            playerRepository.deleteById(id);
-            return player;
-        }
-        return null;
+    public void delete(Long id) {
+        if (!playerRepository.existsById(id))
+            throw new PlayerNotFoundException();
+
+        playerRepository.deleteById(id);
     }
 
     @Override
     public Long checkId(String id) {
         if (id == null || id.isEmpty() || id.equalsIgnoreCase("0"))
-            return -1L;
+            throw new BadRequestException();
+
         try {
             Long id1 = Long.parseLong(id);
             return id1;
         } catch (NumberFormatException e) {
+            throw new BadRequestException();
         }
-
-        return -1L;
     }
 
-    private int checkPlayerParameters(Player player) {
-        if (player.getName() != null && (player.getName().length() > 12) || (player.getName().isEmpty()))
-            return -1;
+    private void checkPlayerParameters(Player player) {
+        if (player.getName() != null && (player.getName().length() > 12 || player.getName().isEmpty()))
+            throw new BadRequestException();
+
         if (player.getTitle() != null && (player.getTitle().length() > 30))
-            return -1;
+            throw new BadRequestException();
+
         if (player.getExperience() != null && (player.getExperience() < 0 || player.getExperience() > 10_000_000))
-            return -1;
+            throw new BadRequestException();
+
         if (player.getBirthday() != null && player.getBirthday().getTime() < 0)
-            return -1;
+            throw new BadRequestException();
+
         if (player.getBirthday() != null) {
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(player.getBirthday());
             if (calendar.get(Calendar.YEAR) < 2000 || calendar.get(Calendar.YEAR) > 3000)
-                return -1;
+                throw new BadRequestException();
         }
-
-        return 0;
     }
 
     private Integer calculateLevel(Integer exp) {
@@ -183,7 +179,7 @@ public class PlayerServiceImpl implements PlayerService {
 
     @Override
     public Specification<Player> filterByProfession(Profession profession) {
-        return (root, query, criteriaBuilder) -> profession == null ? null : criteriaBuilder.equal(root.get("race"), profession);
+        return (root, query, criteriaBuilder) -> profession == null ? null : criteriaBuilder.equal(root.get("profession"), profession);
     }
 
     @Override
@@ -239,13 +235,13 @@ public class PlayerServiceImpl implements PlayerService {
             if (minLevel == null && maxLevel == null)
                 return null;
             if (maxLevel == null) {
-                return criteriaBuilder.greaterThanOrEqualTo(root.get("experience"), minLevel);
+                return criteriaBuilder.greaterThanOrEqualTo(root.get("level"), minLevel);
             }
             if (minLevel == null) {
-                return criteriaBuilder.lessThanOrEqualTo(root.get("experience"), maxLevel);
+                return criteriaBuilder.lessThanOrEqualTo(root.get("level"), maxLevel);
             }
 
-            return criteriaBuilder.between(root.get("experience"), minLevel, maxLevel);
+            return criteriaBuilder.between(root.get("level"), minLevel, maxLevel);
         };
     }
 }

@@ -22,7 +22,7 @@ public interface PlayerService {
 
     Player update(Player player, Long id);
 
-    Player delete(Long id);
+    void delete(Long id);
 
     Long checkId(String id);
 
